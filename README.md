@@ -1,6 +1,35 @@
-# Current View to ParaView · 0.1.4
+# Current View to ParaView
 
-Frame a site in QGIS and click **Send current view to ParaView**. Each click creates a local 3D snapshot. Panning and zooming are free of export work.
+**Explore your QGIS map in 3D — using desktop ParaView or a browser, even offline.**
+
+Current View to ParaView is a free, open-source QGIS plugin for people working with terrain, boreholes, geological boundaries and other spatial survey data. It exports the **currently visible map area** as a local 3D snapshot. You decide when to export; ordinary panning and zooming do not trigger new work.
+
+**Current release:** 0.1.4 · **Status:** experimental · **QGIS:** 3.34–3.x · **Licence:** GPL-2.0-or-later
+
+### What it does
+
+- **Terrain in 3D:** turn supported local elevation rasters into a surface.
+- **Survey layers together:** include supported points, lines and polygons, including borehole paths and logged intervals.
+- **Two ways to explore:** open the scene in installed desktop ParaView or the bundled offline Kitware Glance viewer.
+- **Repeatable snapshots:** export a new view without changing the original QGIS layers or project data.
+- **Useful metadata:** inspect `snapshot.json` to see what was exported, what was skipped and which coordinates and heights were used.
+
+### Quick start
+
+1. Install the plugin ZIP in QGIS using **Plugins → Manage and Install Plugins → Install from ZIP**.
+2. Open a QGIS project containing supported local terrain or spatially indexed vector layers.
+3. Choose **Configure active layer** for any layer that needs an elevation or borehole-depth mapping.
+4. Frame the area you want and click **Send current view to ParaView**. Without desktop ParaView, choose **Open current view in browser (Glance)**.
+
+The detailed setup steps, supported formats and limitations are below.
+
+## Privacy and sharing
+
+**Exported survey data stays on your computer.** The plugin creates local scene files; it does not require a GroundSurf account or upload the generated survey data to an online service. Its bundled Glance browser view works offline.
+
+**Be careful when sharing snapshots.** The exported `scene.vtm`, `.vtp`, `view.html` and `snapshot.json` files may contain real coordinates, elevations, labels and other layer attributes. Review them before sharing or uploading them anywhere, including GitHub. The plugin does not make confidential survey information anonymous.
+
+The software is experimental and is intended for visual exploration, **not as a substitute for checked engineering or geological interpretation**. See the scope and limits below.
 
 ## Install and try it
 
@@ -14,6 +43,16 @@ Frame a site in QGIS and click **Send current view to ParaView**. Each click cre
 The browser snapshot is a self-contained **view.html** with the layer data and Kitware Glance viewer embedded. Double-click it later, including offline. It requires a WebGL-capable browser and permits no network connections from the page. The viewer and licence notices are included in the ZIP. The browser preview accepts up to 96 MiB of VTP input per snapshot. A larger export retains its VTK files and gives a message to reduce the extent or omit layers.
 
 For desktop viewing, use **Choose ParaView executable** to select an installed ParaView program. The toolbar then opens it by default, and the browser menu action remains available. The **scene.vtm** index works with its adjacent VTP files. Copy the entire folder for desktop use. Glance's numeric handling of 64-bit integer attributes is limited. Use the original VTK files for exact large integer IDs. See **snapshot.json** for skipped layers, coordinate origin and measurements.
+
+## Working with individual layers in desktop ParaView
+
+The `scene.vtm` file groups exported QGIS layers into a **multiblock dataset**. This keeps the scene together, but the individual layers are still available.
+
+- To control visibility within the scene, select `scene.vtm` and open ParaView's **MultiBlock Inspector**.
+- To give one layer its own entry in the **Pipeline Browser**, select `scene.vtm`, apply the **Extract Block** filter, choose the desired block and click **Apply**. Repeat for other layers. Hide the original scene if you do not want to see the geometry twice.
+- Alternatively, open the individual `.vtp` files from the snapshot directory. `snapshot.json` helps identify the exported files and any skipped layers.
+
+Independent Pipeline Browser entries for every QGIS layer are **not created automatically** in version 0.1.4.
 
 ## Vertical borehole example
 
@@ -48,6 +87,12 @@ Indexed local delimited-text layers with XY or XYZ columns are supported. For a 
 
 An unconfigured single-band floating-point raster can be included as a surface when the user confirms its values are heights in metres. For feet or other mappings use Configure active layer. Local Arc/Info ASCII grids up to 8 MiB and two million cells are supported alongside GeoTIFF terrain. Large ASCII grids should be converted to tiled GeoTIFFs for windowed access.
 
+
+## Licence and attribution
+
+The QGIS plugin is distributed under **GPL-2.0-or-later**. You can inspect, modify and redistribute it under the terms of that licence. Copyright remains with the respective authors; third-party Kitware Glance assets retain their own accompanying notices and licences. See `LICENSE` and the `view_to_paraview/glance/` notices.
+
+For bugs or suggestions, use the [GitHub issue tracker](https://github.com/wtzet-eng/current-view-to-paraview/issues). This project is independent of Kitware and QGIS.
 
 ## Releasing to the QGIS plugin repository
 
