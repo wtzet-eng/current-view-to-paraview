@@ -1,4 +1,4 @@
-# Current View to ParaView · 0.1.3
+# Current View to ParaView · 0.1.4
 
 Frame a site in QGIS and click **Send current view to ParaView**. Each click creates a local 3D snapshot. Panning and zooming are free of export work.
 
@@ -30,7 +30,7 @@ For a log with one point record per material interval, choose **Vertical logged 
 - The vector budget is 20,000 candidate features, 30,000 coordinates per input feature and 150,000 exported vertices per layer. The worker checks large individual geometries after the provider returns them. The physical cost of reading one unusually large feature still depends on its storage. Scene limits are 1.5 million cells and 256 MiB of staged layer files.
 - Web imagery, WMS, remote rasters, point clouds, general databases and unindexed sources are skipped. Export eligible vectors to a spatially indexed GeoPackage to use them here. Save raster terrain as a local tiled GeoTIFF. Unsupported or over-budget layers appear in the summary. A scene with no eligible data is reported without creating a replacement.
 - Snapshots use binary arrays in VTK XML, with a VTM index, a VTP per layer and a JSON record. Numeric nulls use NaN or a companion validity array. Source IDs remain 64-bit integers. Geometry positions and scalar elevations use metres.
-- This is a standalone experimental plugin. The ZIP contains its complete Python source, test scripts, results and GPL-2.0-or-later licence. No GroundSurf account or service is required.
+- This is a standalone experimental plugin. The release ZIP contains the runtime Python source, bundled Glance assets, their notices and the GPL-2.0-or-later licence. Development QA scripts and test results remain in the source repository, not the installable package. No GroundSurf account or service is required.
 
 
 ## Local survey grids

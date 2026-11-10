@@ -47,3 +47,25 @@ On Ubuntu with QGIS 3.34.4, a four-layer snapshot opened in Firefox 149.0.2 with
 ## 0.1.3 verification
 
 In a local survey regression test, QGIS 3.34.4 exported all 13 visible layers. The scene contained ten indexed 3D borehole paths, 50 points from a local delimited-text table, 27 seismic profile cells and 129,506 Cretaceous surface cells. The surface used signed band values as metres. Its source had a .tif extension and was identified by GDAL as an Arc/Info ASCII grid. Firefox 149.0.2 loaded all 13 named datasets with no skipped layers or network requests. Local-grid geometry, filtering, clipping, cancellation and budget tests also passed.
+
+## 0.1.4 release and security validation (10 November 2026)
+
+- The release ZIP was built with `scripts/build_release.py`: 22 runtime files,
+  all required Glance licences/notices, metadata version 0.1.4 and no `qa/` files.
+  Integrity and Python syntax checks passed.
+- Local Bandit scan of the extracted release ZIP: **zero findings**.
+  Local `detect-secrets` scan: **zero findings**.
+  Flake8 reports non-blocking formatting warnings.
+- The Qt `QProcess.startDetached()` launcher was tested with a child executable,
+  including a scene path containing spaces; the environment variable arrived
+  unchanged and the child launched directly without a shell.
+- In an isolated **Ubuntu QGIS 3.34.4** desktop profile, the ZIP installation
+  and UI QA harness passed: toolbar, theme, hidden/scale-ineligible layers,
+  frozen extent, cancellation, separate refresh, browser fallback and
+  successful two-time launch of the fake ParaView executable.
+- The existing headless `probe.py`, `budgets.py` and `disk_vector.py` tests passed.
+  The `local_grid.py` and `edge_cases.py` checks stopped on missing `vtk`
+  bindings in the host's system Python; they did not report a plugin assertion
+  failure. Their earlier 0.1.3 checks are recorded above.
+- The QGIS repository's asynchronous scan is distinct from this local scan.
+  Uploading 0.1.4 is still required to replace the blocked 0.1.3 version.

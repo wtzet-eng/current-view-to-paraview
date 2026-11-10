@@ -2,8 +2,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-import subprocess
-from qgis.PyQt.QtCore import QStandardPaths, QSettings, Qt, QUrl
+from qgis.PyQt.QtCore import QProcess, QProcessEnvironment, QStandardPaths, QSettings, Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (QAction, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QSpinBox)
@@ -240,11 +239,19 @@ class ViewPlugin:
         exe=self.settings.value(KEY+'exe','') or detect()
         if exe:
             try:
-                env = dict(os.environ, QGIS_PARAVIEW_SNAPSHOT=self.last_scene)
+                # Qt launches the selected executable directly, without a shell.
+                # Give the ParaView script the saved scene through its environment.
                 script = Path(__file__).with_name('open_scene.py')
-                subprocess.Popen([exe,'--script='+str(script)],env=env)
-                bar.pushInfo('ParaView','Launching snapshot '+self.last_scene)
-                return
+                process = QProcess()
+                process.setProgram(exe)
+                process.setArguments(['--script=' + str(script)])
+                environment = QProcessEnvironment.systemEnvironment()
+                environment.insert('QGIS_PARAVIEW_SNAPSHOT', self.last_scene)
+                process.setProcessEnvironment(environment)
+                started, _pid = process.startDetached()
+                if started:
+                    bar.pushInfo('ParaView','Launching snapshot '+self.last_scene)
+                    return
             except OSError:
                 pass
         bar.pushWarning('ParaView','Scene saved. Choose a ParaView executable in the plugin menu, or open '+self.last_scene)

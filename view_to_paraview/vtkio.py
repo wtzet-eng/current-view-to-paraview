@@ -1,7 +1,7 @@
 """Small VTK XML writer. No ParaView or VTK Python module needed in QGIS."""
 from base64 import b64encode
 from pathlib import Path
-from xml.etree.ElementTree import Element, SubElement, ElementTree
+from xml.etree.ElementTree import Element, SubElement, ElementTree  # nosec B405 - writer only; never parses untrusted XML
 import struct
 import numpy as np
 
