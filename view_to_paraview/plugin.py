@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import (QAction, QCheckBox, QComboBox, QDialog, QDialog
     QFileDialog, QFormLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QSpinBox)
 from qgis.core import Qgis, QgsApplication, QgsRasterLayer, QgsVectorLayer
 from .export import capture, ExportTask
+from . import display
 from .spatial import LocalGridRequired
 
 KEY = 'currentViewParaView/'
@@ -38,7 +39,7 @@ class ViewPlugin:
 
     def initGui(self):
         actions=[('Send current view to ParaView',self.send),('Open current view in browser (Glance)',self.send_browser),
-                 ('Configure active layer…',self.configure),
+                 ('Configure 3D view…',self.configure_display), ('Configure active layer…',self.configure),
                  ('Choose ParaView executable…',self.executable),('Choose export folder…',self.folder)]
         for label,fn in actions:
             action=QAction(label,self.iface.mainWindow())
@@ -66,6 +67,9 @@ class ViewPlugin:
         path=QFileDialog.getExistingDirectory(self.iface.mainWindow(),'Choose export folder')
         if path:
             self.settings.setValue(KEY+'folder',path)
+
+    def configure_display(self):
+        display.configure(self.iface.mapCanvas(), self.iface.mainWindow())
 
     def configure(self):
         layer=self.iface.activeLayer()
@@ -173,6 +177,12 @@ class ViewPlugin:
         try:
             canvas=self.iface.mapCanvas()
             options={layer.id():layer_options(layer) for layer in canvas.mapSettings().layers()}
+            for index,node in enumerate(display.layers_in_tree(canvas)):
+                opts = options[node.layerId()]
+                opts['display'] = display.style(node,index)
+                field = opts['display']['field']
+                if field and field not in opts.get('attributes', []):
+                    opts['attributes'] = [*opts.get('attributes', []), field]
             for layer in canvas.mapSettings().layers():
                 if not isinstance(layer,QgsRasterLayer) or not layer.isValid():
                     continue
@@ -202,6 +212,7 @@ class ViewPlugin:
                 if answer != QMessageBox.Yes:
                     return
                 snapshot=capture(canvas,options,allow_local_metres=True)
+            snapshot[2]["vertical_scale"] = display.exaggeration()
             default=Path(QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation))/'QGIS ParaView'
             executable = self.settings.value(KEY+'exe','') or detect()
             use_browser = browser or not (executable and shutil.which(executable))

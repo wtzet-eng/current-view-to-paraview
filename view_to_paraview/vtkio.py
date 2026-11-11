@@ -1,7 +1,7 @@
 """Small VTK XML writer. No ParaView or VTK Python module needed in QGIS."""
 from base64 import b64encode
 from pathlib import Path
-from xml.etree.ElementTree import Element, SubElement, ElementTree  # nosec B405 - writer only; never parses untrusted XML
+from xml.etree.ElementTree import Element, SubElement, ElementTree
 import struct
 import numpy as np
 
@@ -35,8 +35,8 @@ def poly(path, points, family, links, ends, attributes=()):
     coords = np.asarray(points,dtype=float).reshape(-1,3)
     array(SubElement(piece, 'PointData'), 'elevation_m', coords[:,2], 'f8')
     cell = SubElement(piece, 'CellData')
-    for name, values, kind in attributes:
-        array(cell, name, values, kind)
+    for attribute in attributes:
+        array(cell, *attribute)
     array(SubElement(piece, 'Points'), 'Points', points, 'f8', 3)
     cells = SubElement(piece, family)
     array(cells, 'connectivity', links, 'i4')
@@ -44,8 +44,15 @@ def poly(path, points, family, links, ends, attributes=()):
     ElementTree(root).write(path, encoding='utf-8', xml_declaration=True)
 
 
-def scene(folder, blocks):
+def scene(folder, blocks, styles=None):
     root, dataset = document('vtkMultiBlockDataSet')
+    groups = {}
     for i, (name, file) in enumerate(blocks):
-        SubElement(dataset, 'DataSet', index=str(i), name=name, file=Path(file).name)
+        group = (styles or {}).get(file, {}).get('group')
+        parent = dataset
+        if group:
+            if group not in groups:
+                groups[group] = SubElement(dataset, 'Block', index=str(len(dataset)), name=group)
+            parent = groups[group]
+        SubElement(parent, 'DataSet', index=str(len(parent)), name=name, file=Path(file).name)
     ElementTree(root).write(folder / 'scene.vtm', encoding='utf-8', xml_declaration=True)

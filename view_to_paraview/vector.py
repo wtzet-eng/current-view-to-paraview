@@ -248,6 +248,40 @@ def vector_file(path, spec, frame, terrain, check):
             attrs.append(('field.'+name,['' if v is None or v==NULL else str(v) for v in values],'string'))
             if any(v is None or v==NULL for v in values):
                 attrs.append(('valid.'+name,[int(v is not None and v!=NULL) for v in values],'u1'))
+    from .geometry_display import category_rgb, tubes
+    import json
+    display = opts.get('display', {})
+    field = display.get('field')
+    colors = None
+    if field and field in selected:
+        idx = selected.index(field)
+        colors = [category_rgb(None if r[1][idx] == NULL else r[1][idx]) for r in records]
+        attrs.append(('display_rgb', colors, 'u1', 3))
     poly(path,points,family,links,ends,attrs)
+    if family == 'Lines' and display.get('radius', 0) > 0:
+        mesh = tubes(points, ends, display['radius'], check)
+        if mesh:
+            vertices, faces, owners = mesh
+            attributes = [('source_fid', [records[i][0] for i in owners], 'i8')]
+            if colors:
+                attributes.append(('display_rgb', [colors[i] for i in owners], 'u1', 3))
+            tube_path = path.with_suffix('.tube.vtp')
+            poly(tube_path, vertices, 'Polys', faces, range(4,len(faces)+1,4), attributes)
+            stats['tube_file'] = tube_path.name
+    if family == 'Verts' and display:
+        # Browser picking uses original coordinates and text (including 64-bit IDs).
+        info_path = path.with_suffix('.points.json')
+        with info_path.open('w', encoding='utf-8') as stream:
+            stream.write('[')
+            for i,(p,r) in enumerate(zip(points, records)):
+                if i % 256 == 0:
+                    check()
+                if i:
+                    stream.write(',')
+                fields = {name: None if v is None or v == NULL else str(v)
+                          for name,v in zip(selected,r[1])}
+                json.dump([p,str(r[0]),fields], stream, ensure_ascii=False)
+            stream.write(']')
+        stats['points_file'] = info_path.name
     stats['cells'] = len(ends)
     return stats

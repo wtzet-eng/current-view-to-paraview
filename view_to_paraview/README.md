@@ -47,3 +47,11 @@ The export uses the layers visible in the current QGIS canvas. In Glance each la
 Indexed local delimited-text layers with XY or XYZ columns are supported. For a local table up to 1 MiB, the plugin can build its index in memory. Larger tables need an index enabled in the layer settings. For shapefiles, use QGIS Processing → Create spatial index once. It creates a sidecar beside the source.
 
 An unconfigured single-band floating-point raster can be included as a surface when the user confirms its values are heights in metres. For feet or other mappings use Configure active layer. Local Arc/Info ASCII grids up to 8 MiB and two million cells are supported alongside GeoTIFF terrain. Large ASCII grids should be converted to tiled GeoTIFFs for windowed access.
+
+### Configure the 3D display (0.2.0)
+
+Open **Plugins → Current View to ParaView → Configure 3D view**. The dialog lists canvas layers in project tree order and uses their group paths. Edit a group name to move a layer in the exported scene. Pick a colour, opacity, display size and optional categorical colour field. The group button copies the chosen layer’s colour and opacity to its group. Use **Apply geological survey preset** for a starting arrangement of surfaces, boreholes and seismic profiles. Review it and click OK. Save the QGIS project to keep these settings.
+
+For a line, a positive tube radius creates a display surface in scene metres. Zero uses the original line. In the browser, expand **QGIS 3D view** to switch groups or individual layers. Change vertical scale or use **1×** to restore true proportions. Shift-click near a displayed point to inspect its source ID, original elevation in metres and exported attributes. Choose those fields under **Configure active layer**. Picking finds the nearest projected point in a 12-pixel radius and can reach a point behind a surface. The browser carries its controls inside the offline HTML.
+
+Desktop ParaView opens the styled layers as separate sources; the geometry-only scene.vtm also carries the group hierarchy. Point picking and the group control panel described above are browser features.

@@ -139,9 +139,13 @@ class ExportTask(QgsTask):
                 self.setProgress(100*(i+1)/max(1,len(entries)))
             if not blocks:
                 raise ValueError('No exportable layers. '+ ' '.join(x['layer']+': '+x['reason'] for x in self.audit['skipped']))
-            scene(stage,blocks)
+            styles = {m['file']:dict(m['settings'].get('display', {})) for m in self.audit['layers']}
+            for m in self.audit['layers']:
+                styles[m['file']].update({k:m[k] for k in ('tube_file','points_file') if k in m})
+            blocks.sort(key=lambda b:styles[b[1]].get('order', 0))
+            scene(stage,blocks,styles)
             if self.browser_view:
-                self.browser_error = write_browser_view(stage,blocks,self.check)
+                self.browser_error = write_browser_view(stage,blocks,self.check,styles,self.audit.get("vertical_scale", 1))
             (stage/'snapshot.json').write_text(json.dumps(self.audit,indent=2),encoding='utf-8')
             self.check()
             final=self.folder/(time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8])
