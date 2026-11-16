@@ -48,7 +48,7 @@ def array(parent, name, data, kind, components=1):
         parent.writeCharacters(b64encode(struct.pack('<Q', len(raw)) + raw).decode('ascii'))
 
 
-def poly(path, points, family, links, ends, attributes=()):
+def poly(path, points, family, links, ends, attributes=(), point_attributes=()):
     names = ('Verts', 'Lines', 'Strips', 'Polys')
     counts = {'NumberOf' + name: str(len(ends) if name == family else 0) for name in names}
     coords = np.asarray(points, dtype=float).reshape(-1, 3)
@@ -56,6 +56,8 @@ def poly(path, points, family, links, ends, attributes=()):
         with element(writer, 'Piece', NumberOfPoints=str(len(points)), **counts):
             with element(writer, 'PointData'):
                 array(writer, 'elevation_m', coords[:, 2], 'f8')
+                for attribute in point_attributes:
+                    array(writer, *attribute)
             with element(writer, 'CellData'):
                 for attribute in attributes:
                     array(writer, *attribute)

@@ -55,3 +55,11 @@ Open **Plugins → Current View to ParaView → Configure 3D view**. The dialog 
 For a line, a positive tube radius creates a display surface in scene metres. Zero uses the original line. In the browser, expand **QGIS 3D view** to switch groups or individual layers. Change vertical scale or use **1×** to restore true proportions. Shift-click near a displayed point to inspect its source ID, original elevation in metres and exported attributes. Choose those fields under **Configure active layer**. Picking finds the nearest projected point in a 12-pixel radius and can reach a point behind a surface. The browser carries its controls inside the offline HTML.
 
 Desktop ParaView opens the styled layers as separate sources; the geometry-only scene.vtm also carries the group hierarchy. Point picking and the group control panel described above are browser features.
+
+## SGeMS and GroundSurf in one scene
+
+In SGeMS Workbench 0.4.4 or later, use **Add to QGIS map**. Kriging estimates and SGSIM/SISIM realizations use geometry Z and include numeric properties automatically. For other sample or Cartesian-grid point layers, select the layer and choose **Current View to ParaView → Use active layer as SGeMS points**. Review the numeric fields and vertical units, then click OK. Model nodes appear as points. Numeric properties are available as ParaView point arrays with the prefix `field.`.
+
+In GroundSurf, add the site boundary or mapped evidence to QGIS. Keep those layers visible alongside the model, zoom to the area of interest, and choose **Send current view to ParaView** or **Open current view in browser (Glance)**. Evidence retains its source, date, label, scale and spatial relationship where supplied. Boundaries retain their report ID and site origin. Two-dimensional evidence is displayed at the reference plane unless you configure an elevation source. Its display height is not a measured groundwater elevation.
+
+To combine sources geographically, assign the correct CRS to the model before export. For a purely local model, use a separate no-CRS project and confirm that horizontal units are metres. Existing view clipping, feature budgets, layer visibility and explicit attribute choices apply.

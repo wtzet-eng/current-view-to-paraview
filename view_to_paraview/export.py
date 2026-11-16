@@ -35,8 +35,8 @@ def capture(canvas, options, allow_local_metres=False):
             continue
         name = layer.name()
         try:
-            if not layer.isValid() or not layer.crs().isValid():
-                raise ValueError('Layer or CRS is invalid.')
+            if not layer.isValid() or (not layer.crs().isValid() and not frame.local_grid):
+                raise ValueError('Layer or CRS is invalid. Assign the source CRS, or use a separate local-metre project for unreferenced data.')
             if frame.local_grid and layer.crs() != frame.crs:
                 raise ValueError('Local-grid export requires the same coordinate label as the canvas.')
             entry = dict(name=name,id=layer.id(),vertical_crs=layer.verticalCrs().description()

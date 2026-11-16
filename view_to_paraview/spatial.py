@@ -35,9 +35,11 @@ class Frame:
         self.footprint = QgsGeometry.fromPolygonXY([self.corners + self.corners[:1]])
         self.scene = self.crs
         center = self.footprint.centroid().asPoint()
-        self.local_grid = self.crs.isGeographic() and abs(center.y()) > 90
+        self.local_grid = not self.crs.isValid() or (self.crs.isGeographic() and abs(center.y()) > 90)
         if self.local_grid:
             if not allow_local_metres:
+                if not self.crs.isValid():
+                    raise LocalGridRequired('The canvas has no CRS. Only layers in the same local frame can be included.')
                 raise LocalGridRequired(
                     f'The canvas uses {self.crs.description()}, but its centre is '
                     f'X {center.x():,.2f}, Y {center.y():,.2f}. This Y is outside the latitude range.'

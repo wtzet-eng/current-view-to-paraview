@@ -22,6 +22,8 @@ def capture_vector(layer, settings, opts):
                 raise ValueError('Enable a spatial index in the delimited-text layer settings.')
     elif kind not in ('ogr','memory'):
         raise ValueError('This vector provider does not support audited spatial queries.')
+    if kind == 'memory' and provider.hasSpatialIndex() != provider.SpatialIndexPresent:
+        provider.createSpatialIndex()
     if provider.hasSpatialIndex() != provider.SpatialIndexPresent:
         raise ValueError('Spatial index required. For a local shapefile, run QGIS Processing → Create spatial index.')
     if layer.providerType() == 'ogr':
@@ -238,7 +240,7 @@ def vector_file(path, spec, frame, terrain, check):
         values = [r[1][idx] for r in records]
         if fields[name].isNumeric():
             missing = [v is None or v==NULL for v in values]
-            if all(m or isinstance(v,int) for v,m in zip(values,missing)):
+            if fields[name].typeName().lower() not in ('double','real','double precision','float','float8') and all(m or isinstance(v,int) for v,m in zip(values,missing)):
                 attrs.append(('field.'+name,[0 if m else int(v) for v,m in zip(values,missing)],'i8'))
                 if any(missing):
                     attrs.append(('valid.'+name,[int(not m) for m in missing],'u1'))
@@ -257,7 +259,10 @@ def vector_file(path, spec, frame, terrain, check):
         idx = selected.index(field)
         colors = [category_rgb(None if r[1][idx] == NULL else r[1][idx]) for r in records]
         attrs.append(('display_rgb', colors, 'u1', 3))
-    poly(path,points,family,links,ends,attrs)
+    point_attrs = ()
+    if opts.get('source') == 'SGeMS' and family == 'Verts' and len(points) == len(ends):
+        point_attrs = [a for a in attrs if a[0].startswith(('field.', 'valid.')) and a[2] != 'string']
+    poly(path,points,family,links,ends,attrs,point_attributes=point_attrs)
     if family == 'Lines' and display.get('radius', 0) > 0:
         mesh = tubes(points, ends, display['radius'], check)
         if mesh:

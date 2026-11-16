@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 from qgis.PyQt.QtCore import QProcess, QProcessEnvironment, QStandardPaths, QSettings, Qt, QUrl
@@ -10,7 +11,7 @@ try:
     from qgis.PyQt.QtGui import QAction
 except ImportError:  # Qt 5
     from qgis.PyQt.QtWidgets import QAction
-from qgis.core import Qgis, QgsApplication, QgsRasterLayer, QgsVectorLayer
+from qgis.core import Qgis, QgsApplication, QgsRasterLayer, QgsVectorLayer, QgsWkbTypes
 from .export import capture, ExportTask
 from . import display
 from .spatial import LocalGridRequired
@@ -23,7 +24,29 @@ MODES = [('flat','Geometry Z, otherwise flat reference at 0 m'),
 
 
 def layer_options(layer):
-    return json.loads(str(layer.customProperty(KEY+'options','{}')))
+    saved = json.loads(str(layer.customProperty(KEY+'options','{}')))
+    if not isinstance(layer, QgsVectorLayer):
+        return saved
+    fields = layer.fields()
+    names = fields.names()
+    source = saved.get('source')
+    report = layer.customProperty('GroundSurf/report_id', '')
+    evidence = (layer.name().startswith('GroundSurf · ') and
+                {'record', 'source', 'date', 'relationship', 'label', 'scale'} <= set(names))
+    if report or evidence or {'report_id', 'site_origin'} <= set(names):
+        defaults = dict(source='GroundSurf', attributes=[n for n in names if n in
+                        ('record','source','date','relationship','label','scale','report_id','site_origin')])
+        if report or evidence:
+            defaults['report_id'] = str(report or layer.name()[len('GroundSurf · '):])
+    elif (layer.geometryType() == 0 and QgsWkbTypes.hasZ(layer.wkbType()) and
+          (source == 'SGeMS' or 'unit_sill_variance' in names or
+           any(re.search(r'_(?:sgsim|sisim)_\d+$', n) for n in names))):
+        defaults = dict(source='SGeMS', mode='geometry',
+                        attributes=[f.name() for f in fields if f.isNumeric()])
+    else:
+        defaults = {}
+    defaults.update(saved)
+    return defaults
 
 
 def detect():
@@ -43,6 +66,7 @@ class ViewPlugin:
 
     def initGui(self):
         actions=[('Send current view to ParaView',self.send),('Open current view in browser (Glance)',self.send_browser),
+                 ('Use active layer as SGeMS points…',self.sgems_points),
                  ('Configure 3D view…',self.configure_display), ('Configure active layer…',self.configure),
                  ('Choose ParaView executable…',self.executable),('Choose export folder…',self.folder)]
         for label,fn in actions:
@@ -72,15 +96,25 @@ class ViewPlugin:
         if path:
             self.settings.setValue(KEY+'folder',path)
 
+    def sgems_points(self):
+        layer = self.iface.activeLayer()
+        if not (isinstance(layer, QgsVectorLayer) and layer.geometryType() == 0
+                and QgsWkbTypes.hasZ(layer.wkbType())):
+            self.iface.messageBar().pushWarning('SGeMS', 'Select a 3D point layer. In SGeMS Workbench use Add to QGIS map first.')
+            return
+        self.configure(sgems=True)
+
     def configure_display(self):
         display.configure(self.iface.mapCanvas(), self.iface.mainWindow())
 
-    def configure(self):
+    def configure(self, checked=False, *, sgems=False):
         layer=self.iface.activeLayer()
         if not isinstance(layer,(QgsRasterLayer,QgsVectorLayer)):
             self.iface.messageBar().pushWarning('ParaView','Select a vector or elevation raster layer first.')
             return
         opts=layer_options(layer)
+        if sgems:
+            opts.update(source='SGeMS', mode='geometry', attributes=[f.name() for f in layer.fields() if f.isNumeric()])
         dialog=QDialog(self.iface.mainWindow())
         dialog.setWindowTitle('ParaView · '+layer.name())
         form=QFormLayout(dialog)
@@ -168,6 +202,8 @@ class ViewPlugin:
                 QMessageBox.warning(dialog,'ParaView','Choose the required numeric fields.')
                 return
             result['attributes']=[attrs.item(i).text() for i in range(attrs.count()) if attrs.item(i).checkState()==Qt.CheckState.Checked]
+        if opts.get('source'):
+            result['source'] = opts['source']
         layer.setCustomProperty(KEY+'options',json.dumps(result))
         from qgis.core import QgsProject
         QgsProject.instance().setDirty(True)
@@ -184,6 +220,9 @@ class ViewPlugin:
             for index,node in enumerate(display.layers_in_tree(canvas)):
                 opts = options[node.layerId()]
                 opts['display'] = display.style(node,index)
+                if (opts.get('source') and opts['display']['group'] == 'Layers'
+                        and not node.layer().customProperty(display.KEY, '')):
+                    opts['display']['group'] = opts['source']
                 field = opts['display']['field']
                 if field and field not in opts.get('attributes', []):
                     opts['attributes'] = [*opts.get('attributes', []), field]

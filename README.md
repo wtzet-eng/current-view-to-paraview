@@ -119,3 +119,11 @@ Bandit's B405 exception on the XML writer is documented inline: that module
 only serializes a new VTK XML document; it does not parse external XML.
 Launching ParaView uses Qt's no-shell `QProcess.startDetached()` and an
 explicit snapshot path in the child process environment.
+
+## SGeMS and GroundSurf in one scene
+
+In SGeMS Workbench 0.4.4 or later, use **Add to QGIS map**. Kriging estimates and SGSIM/SISIM realizations use geometry Z and include numeric properties automatically. For other sample or Cartesian-grid point layers, select the layer and choose **Current View to ParaView → Use active layer as SGeMS points**. Review the numeric fields and vertical units, then click OK. Model nodes appear as points. Numeric properties are available as ParaView point arrays with the prefix `field.`.
+
+In GroundSurf, add the site boundary or mapped evidence to QGIS. Keep those layers visible alongside the model, zoom to the area of interest, and choose **Send current view to ParaView** or **Open current view in browser (Glance)**. Evidence retains its source, date, label, scale and spatial relationship where supplied. Boundaries retain their report ID and site origin. Two-dimensional evidence is displayed at the reference plane unless you configure an elevation source. Its display height is not a measured groundwater elevation.
+
+To combine sources geographically, assign the correct CRS to the model before export. For a purely local model, use a separate no-CRS project and confirm that horizontal units are metres. Existing view clipping, feature budgets, layer visibility and explicit attribute choices apply.
