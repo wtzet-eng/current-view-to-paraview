@@ -65,7 +65,7 @@ def configure(canvas, parent):
         layer = node.layer()
         settings = style(node, i)
         title = QLabel()
-        title.setTextFormat(Qt.PlainText)
+        title.setTextFormat(Qt.TextFormat.PlainText)
         title.setText(layer.name())
         rows.addWidget(title)
         row = QHBoxLayout()
@@ -136,12 +136,12 @@ def configure(canvas, parent):
                     opacity.setValue(alpha.value())
     copy.clicked.connect(copy_selected)
     form.addRow(source, copy)
-    buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+    buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
     buttons.accepted.connect(dialog.accept)
     buttons.rejected.connect(dialog.reject)
     layout.addWidget(buttons)
     dialog.resize(900, 550)
-    if dialog.exec_() == QDialog.Accepted:
+    if dialog.exec() == QDialog.DialogCode.Accepted:
         for layer, group, color, opacity, size, radius, field in editors:
             settings = dict(group=group.currentText().strip() or 'Layers', color=color.text(),
                             opacity=opacity.value()/100, size=size.value(), radius=radius.value(),

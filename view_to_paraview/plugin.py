@@ -4,8 +4,12 @@ from pathlib import Path
 import shutil
 from qgis.PyQt.QtCore import QProcess, QProcessEnvironment, QStandardPaths, QSettings, Qt, QUrl
 from qgis.PyQt.QtGui import QDesktopServices
-from qgis.PyQt.QtWidgets import (QAction, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+from qgis.PyQt.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
     QFileDialog, QFormLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QSpinBox)
+try:
+    from qgis.PyQt.QtGui import QAction
+except ImportError:  # Qt 5
+    from qgis.PyQt.QtWidgets import QAction
 from qgis.core import Qgis, QgsApplication, QgsRasterLayer, QgsVectorLayer
 from .export import capture, ExportTask
 from . import display
@@ -144,13 +148,13 @@ class ViewPlugin:
             attrs=QListWidget()
             for name in layer.fields().names():
                 item=QListWidgetItem(name,attrs)
-                item.setCheckState(Qt.Checked if name in opts.get('attributes',[]) else Qt.Unchecked)
+                item.setCheckState(Qt.CheckState.Checked if name in opts.get('attributes',[]) else Qt.CheckState.Unchecked)
             form.addRow('Include attributes',attrs)
-        buttons=QDialogButtonBox(QDialogButtonBox.Ok|QDialogButtonBox.Cancel)
+        buttons=QDialogButtonBox(QDialogButtonBox.StandardButton.Ok|QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         form.addRow(buttons)
-        if dialog.exec_()!=QDialog.Accepted:
+        if dialog.exec()!=QDialog.DialogCode.Accepted:
             return
         result=dict(omit=omit.isChecked(),factor=0.3048 if units.currentIndex() else 1.0)
         if isinstance(layer,QgsRasterLayer):
@@ -163,7 +167,7 @@ class ViewPlugin:
             if any(not result[key] for key in required):
                 QMessageBox.warning(dialog,'ParaView','Choose the required numeric fields.')
                 return
-            result['attributes']=[attrs.item(i).text() for i in range(attrs.count()) if attrs.item(i).checkState()==Qt.Checked]
+            result['attributes']=[attrs.item(i).text() for i in range(attrs.count()) if attrs.item(i).checkState()==Qt.CheckState.Checked]
         layer.setCustomProperty(KEY+'options',json.dumps(result))
         from qgis.core import QgsProject
         QgsProject.instance().setDirty(True)
@@ -192,14 +196,14 @@ class ViewPlugin:
                 if (layer.providerType()!='gdal' or layer.bandCount()!=1
                         or not layer.source().lower().endswith(('.tif','.tiff','.asc','.grd'))
                         or not os.path.isfile(layer.source()) or not layer.isInScaleRange(canvas.scale())
-                        or layer.dataProvider().dataType(1) not in (Qgis.Float32,Qgis.Float64)):
+                        or layer.dataProvider().dataType(1) not in (Qgis.DataType.Float32,Qgis.DataType.Float64)):
                     continue
                 answer=QMessageBox.question(self.iface.mainWindow(),'Include raster surface?',
                     f'Use band 1 of “{layer.name()}” as a surface with Z in metres for this view? '
                     'Choose No if its values represent something else.',
-                    QMessageBox.Yes | QMessageBox.No,QMessageBox.No)
-                opts.update(dem=answer==QMessageBox.Yes,band=1)
-                if answer==QMessageBox.No:
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)
+                opts.update(dem=answer==QMessageBox.StandardButton.Yes,band=1)
+                if answer==QMessageBox.StandardButton.No:
                     opts['omit']=True
             try:
                 snapshot=capture(canvas,options)
@@ -208,12 +212,12 @@ class ViewPlugin:
                     self.iface.mainWindow(), 'Export using a local grid?',
                     str(exc)+'\n\nAre the displayed X and Y in metres? Choose Yes to preserve '
                     'their spacing in a local 3D scene. The geographic location will be unspecified.',
-                    QMessageBox.Yes | QMessageBox.Cancel, QMessageBox.Cancel)
-                if answer != QMessageBox.Yes:
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+                if answer != QMessageBox.StandardButton.Yes:
                     return
                 snapshot=capture(canvas,options,allow_local_metres=True)
             snapshot[2]["vertical_scale"] = display.exaggeration()
-            default=Path(QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation))/'QGIS ParaView'
+            default=Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation))/'QGIS ParaView'
             executable = self.settings.value(KEY+'exe','') or detect()
             use_browser = browser or not (executable and shutil.which(executable))
             self.task=ExportTask(snapshot,self.settings.value(KEY+'folder',str(default)),self.completed,use_browser)

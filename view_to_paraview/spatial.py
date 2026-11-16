@@ -1,7 +1,7 @@
 import numpy as np
 from osgeo import osr
 from qgis.core import (QgsCoordinateReferenceSystem as CRS, QgsCoordinateTransform,
-                       QgsGeometry, QgsRectangle, QgsUnitTypes)
+                       QgsGeometry, QgsRectangle, Qgis)
 
 
 def transform_xy(src, dst, x, y):
@@ -44,7 +44,7 @@ class Frame:
                 )
             self.origin = center
             return
-        if self.crs.mapUnits() != QgsUnitTypes.DistanceMeters or self.crs.isGeographic() or self.crs.authid()=='EPSG:3857':
+        if self.crs.mapUnits() != Qgis.DistanceUnit.Meters or self.crs.isGeographic() or self.crs.authid()=='EPSG:3857':
             geo = QgsCoordinateTransform(self.crs, CRS('EPSG:4326'), self.context).transform(center)
             self.scene = CRS()
             if not self.scene.createFromProj(f'+proj=aeqd +lat_0={geo.y():.12f} +lon_0={(geo.x()+180)%360-180:.12f} +datum=WGS84 +units=m +type=crs'):

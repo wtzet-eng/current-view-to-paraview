@@ -92,7 +92,7 @@ class Cancelled(Exception):
 
 class ExportTask(QgsTask):
     def __init__(self,snapshot,folder,callback,browser_view=False):
-        super().__init__('Send current view to ParaView',QgsTask.CanCancel)
+        super().__init__('Send current view to ParaView',QgsTask.Flag.CanCancel)
         self.frame,self.entries,self.audit = snapshot
         self.folder,self.callback = Path(folder),callback
         self.result_path,self.error = None,''
