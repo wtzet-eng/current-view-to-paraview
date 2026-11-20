@@ -15,7 +15,7 @@ Frame a site in QGIS, then choose the optional **Quick 3D preview (Three.js)**, 
 
 Choose **Quick 3D preview (Three.js)** from the plugin menu. It exports a new, coarser terrain snapshot and opens `quick-preview.html` in your regular browser. Use the mouse to rotate, scroll to zoom, toggle individual layers and reset the view. The style is dark (#212121) with green accents.
 
-This preview is intentionally simple: it shows local geometry only (points, lines and triangulated surfaces), not the full attribute table, source labels, advanced ParaView tools or guaranteed precision. Large VTP layers are skipped under explicit size and vertex budgets; the full `scene.vtm` export remains available. Check `snapshot.json` for exported/skipped layers.
+This preview is intentionally simple: it shows local geometry only (points, lines and triangulated surfaces), not the full attribute table, source labels, advanced ParaView tools or guaranteed precision. Large VTP layers are skipped under explicit size and vertex budgets; the preview lists those omissions. The full `scene.vtm` export remains available and `snapshot.json` records the normal full-export provenance.
 
 **Internet and privacy:** Three.js 0.187.0 (MIT licence) is loaded from jsDelivr only when you open this option; the resulting HTML embeds scene geometry locally and disables `connect-src` requests. No user-created geometries are uploaded by the plugin, but loading third-party code is still a trust decision. Use **Open current view in browser (Glance)** for offline or sensitive work. A browser with WebGL is required. We intentionally do not embed a WebEngine window in QGIS 3.34, where support can vary by platform.
 
