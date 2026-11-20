@@ -6,17 +6,17 @@ from jsDelivr only when the user explicitly opens the Three.js preview.
 For confidential/offline scenes, use the bundled Glance viewer instead.
 """
 from base64 import b64decode
-from html import escape
 from pathlib import Path
 import json
 import math
+import re
 import struct
 import xml.etree.ElementTree as ET
 
 MAX_VTP_BYTES = 12 * 1024 * 1024
 MAX_POINTS_PER_LAYER = 100_000
 MAX_POINTS_TOTAL = 160_000
-MAX_ELEMENTS_TOTAL = 320_000
+MAX_ELEMENTS_TOTAL = 650_000
 MAX_OUTPUT_BYTES = 20 * 1024 * 1024
 THREE_VERSION = "0.187.0"
 
@@ -99,7 +99,7 @@ canvas.addEventListener('pointermove',e=>{if(!previous)return;azimuth+=(e.client
 canvas.addEventListener('pointerup',()=>{previous=null;});canvas.addEventListener('pointercancel',()=>{previous=null;});
 canvas.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(size*0.04,Math.min(size*100,distance*Math.exp(e.deltaY*0.001)));cameraUpdate();},{passive:false});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);cameraUpdate();});
-document.getElementById('status').textContent=sceneData.layers.length+' layer(s) · '+sceneData.points.toLocaleString()+' vertices'+(sceneData.skipped.length?' · '+sceneData.skipped.length+' layer(s) skipped (see snapshot.json)':'');
+document.getElementById('status').textContent=sceneData.layers.length+' layer(s) · '+sceneData.points.toLocaleString()+' vertices'+(sceneData.skipped.length?' · Preview omitted: '+sceneData.skipped.join(', '):'');
 reset();
 </script></body></html>
 """
@@ -190,9 +190,7 @@ def write_three_preview(folder, blocks, check, styles=None, scale=1.0):
                     raise ValueError('Aggregate point budget')
                 total += count
                 geometry.update(name=str(name)[:150], color=style.get('color', '#80b78c'))
-                if not isinstance(geometry['color'], str) or not (
-                    geometry['color'].startswith('#') and len(geometry['color']) in (4, 7)
-                ):
+                if not isinstance(geometry['color'], str) or not re.fullmatch(r'#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?', geometry['color']):
                     geometry['color'] = '#80b78c'
                 layers.append(geometry)
             except (ValueError, OSError, ET.ParseError):
