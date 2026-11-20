@@ -39,3 +39,10 @@ jobs:
               assert 'version=0.2.4' in m
           print('Validated ZIP:', p.stat().st_size, 'bytes')
           PY
+      - name: Upload experimental QGIS plugin ZIP for manual desktop testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: CurrentView_to_ParaView_by_GroundSurf_0.2.4_trial
+          path: /tmp/CurrentView_by_GroundSurf_0.2.4.zip
+          if-no-files-found: error
+          retention-days: 7
