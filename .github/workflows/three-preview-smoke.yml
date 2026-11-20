@@ -1,0 +1,24 @@
+name: Three.js quick preview sanity
+
+on:
+  push:
+    branches: [feature/groundsurf-threejs-quick-preview]
+  pull_request:
+    branches: [feature/groundsurf-sgems]
+
+permissions:
+  contents: read
+
+jobs:
+  preview-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Python source without importing QGIS
+        run: python -m compileall -q view_to_paraview scripts
+      - name: Test lightweight geometry preview (no QGIS, VTK or network)
+        run: python -m unittest discover -s view_to_paraview/qa -p 'test_three_preview.py' -v
