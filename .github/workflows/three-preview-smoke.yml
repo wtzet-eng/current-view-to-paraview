@@ -22,3 +22,20 @@ jobs:
         run: python -m compileall -q view_to_paraview scripts
       - name: Test lightweight geometry preview (no QGIS, VTK or network)
         run: python -m unittest discover -s view_to_paraview/qa -p 'test_three_preview.py' -v
+      - name: Validate complete QGIS release ZIP without importing QGIS
+        run: |
+          python scripts/build_release.py /tmp/CurrentView_by_GroundSurf_0.2.4.zip
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          p = Path('/tmp/CurrentView_by_GroundSurf_0.2.4.zip')
+          with zipfile.ZipFile(p) as z:
+              assert z.testzip() is None
+              names = set(z.namelist())
+              assert 'view_to_paraview/three_preview.py' in names
+              assert 'view_to_paraview/LICENSE' in names
+              m = z.read('view_to_paraview/metadata.txt').decode()
+              assert 'name=Current View to ParaView by GroundSurf' in m
+              assert 'version=0.2.4' in m
+          print('Validated ZIP:', p.stat().st_size, 'bytes')
+          PY
