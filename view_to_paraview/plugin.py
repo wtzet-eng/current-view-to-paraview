@@ -65,14 +65,15 @@ class ViewPlugin:
         self.last_scene=None
 
     def initGui(self):
-        actions=[('Send current view to ParaView',self.send),('Open current view in browser (Glance)',self.send_browser),
+        actions=[('Send current view to ParaView',self.send),('Quick 3D preview (Three.js)',self.send_three),
+                 ('Open current view in browser (Glance)',self.send_browser),
                  ('Use active layer as SGeMS points…',self.sgems_points),
                  ('Configure 3D view…',self.configure_display), ('Configure active layer…',self.configure),
                  ('Choose ParaView executable…',self.executable),('Choose export folder…',self.folder)]
         for label,fn in actions:
             action=QAction(label,self.iface.mainWindow())
             action.triggered.connect(fn)
-            self.iface.addPluginToMenu('Current View to ParaView',action)
+            self.iface.addPluginToMenu('Current View to ParaView by GroundSurf',action)
             self.actions.append(action)
         self.actions[0].setIcon(QgsApplication.getThemeIcon('/mActionNew3DMap.svg'))
         self.iface.addToolBarIcon(self.actions[0])
@@ -83,7 +84,7 @@ class ViewPlugin:
             self.task.cancel()
         self.iface.removeToolBarIcon(self.actions[0])
         for action in self.actions:
-            self.iface.removePluginMenu('Current View to ParaView',action)
+            self.iface.removePluginMenu('Current View to ParaView by GroundSurf',action)
             action.deleteLater()
 
     def executable(self):
@@ -211,7 +212,10 @@ class ViewPlugin:
     def send_browser(self):
         self.send(browser=True)
 
-    def send(self, checked=False, *, browser=False):
+    def send_three(self):
+        self.send(three=True)
+
+    def send(self, checked=False, *, browser=False, three=False):
         if self.task:
             return
         try:
@@ -258,20 +262,20 @@ class ViewPlugin:
             snapshot[2]["vertical_scale"] = display.exaggeration()
             default=Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation))/'QGIS ParaView'
             executable = self.settings.value(KEY+'exe','') or detect()
-            use_browser = browser or not (executable and shutil.which(executable))
-            self.task=ExportTask(snapshot,self.settings.value(KEY+'folder',str(default)),self.completed,use_browser)
-            for action in self.actions[:2]:
+            use_browser = browser or (not three and not (executable and shutil.which(executable)))
+            self.task=ExportTask(snapshot,self.settings.value(KEY+'folder',str(default)),self.completed,use_browser,three_view=three)
+            for action in self.actions[:3]:
                 action.setEnabled(False)
             QgsApplication.taskManager().addTask(self.task)
         except Exception as exc:
             self.task=None
-            for action in self.actions[:2]:
+            for action in self.actions[:3]:
                 action.setEnabled(True)
             self.iface.messageBar().pushWarning('ParaView',str(exc))
 
     def completed(self,task,success):
         self.task=None
-        for action in self.actions[:2]:
+        for action in self.actions[:3]:
             action.setEnabled(True)
         bar=self.iface.messageBar()
         if not success or not task.result_path:
@@ -281,6 +285,15 @@ class ViewPlugin:
         skipped=task.audit['skipped']
         if skipped:
             bar.pushWarning('ParaView',' · '.join(item['layer']+': '+item['reason'] for item in skipped))
+        if task.three_view:
+            preview = task.result_path.with_name('quick-preview.html')
+            if task.three_error:
+                bar.pushWarning('GroundSurf', task.three_error + ' VTK scene: ' + self.last_scene)
+            elif QDesktopServices.openUrl(QUrl.fromLocalFile(str(preview))):
+                bar.pushInfo('GroundSurf', 'Opening Three.js quick preview. ' + str(preview))
+            else:
+                bar.pushWarning('GroundSurf', 'Open the saved quick preview: ' + str(preview))
+            return
         if task.browser_view:
             preview = task.result_path.with_name('view.html')
             if task.browser_error:
