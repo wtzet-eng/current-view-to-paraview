@@ -248,6 +248,15 @@ class ViewPlugin:
                 opts.update(dem=answer==QMessageBox.StandardButton.Yes,band=1)
                 if answer==QMessageBox.StandardButton.No:
                     opts['omit']=True
+            # Three.js is deliberately a light inspection surface. Make a
+            # coarser raster export for this action without changing any
+            # user-saved QGIS layer options or the normal ParaView workflow.
+            if three:
+                for layer in canvas.mapSettings().layers():
+                    if isinstance(layer, QgsRasterLayer) and layer.id() in options:
+                        quick = options[layer.id()]
+                        quick['native'] = False
+                        quick['coarsening'] = max(2, int(quick.get('coarsening', 1)))
             try:
                 snapshot=capture(canvas,options)
             except LocalGridRequired as exc:
