@@ -30,7 +30,7 @@ For a log with one point record per material interval, choose **Vertical logged 
 - The vector budget is 20,000 candidate features, 30,000 coordinates per input feature and 150,000 exported vertices per layer. The worker checks large individual geometries after the provider returns them. The physical cost of reading one unusually large feature still depends on its storage. Scene limits are 1.5 million cells and 256 MiB of staged layer files.
 - Web imagery, WMS, remote rasters, point clouds, general databases and unindexed sources are skipped. Export eligible vectors to a spatially indexed GeoPackage to use them here. Save raster terrain as a local tiled GeoTIFF. Unsupported or over-budget layers appear in the summary. A scene with no eligible data is reported without creating a replacement.
 - Snapshots use binary arrays in VTK XML, with a VTM index, a VTP per layer and a JSON record. Numeric nulls use NaN or a companion validity array. Source IDs remain 64-bit integers. Geometry positions and scalar elevations use metres.
-- This is a standalone experimental plugin. The release ZIP contains the runtime Python source, bundled Glance assets, their notices and the GPL-2.0-or-later licence. Development QA scripts and test results remain in the source repository, not the installable package. No GroundSurf account or service is required.
+- This is a standalone plugin. The release ZIP contains the runtime Python source, bundled Glance assets, their notices and the GPL-2.0-or-later licence. Development QA scripts and test results remain in the source repository, not the installable package. No GroundSurf account or service is required.
 
 
 ## Local survey grids
@@ -47,3 +47,19 @@ The export uses the layers visible in the current QGIS canvas. In Glance each la
 Indexed local delimited-text layers with XY or XYZ columns are supported. For a local table up to 1 MiB, the plugin can build its index in memory. Larger tables need an index enabled in the layer settings. For shapefiles, use QGIS Processing → Create spatial index once. It creates a sidecar beside the source.
 
 An unconfigured single-band floating-point raster can be included as a surface when the user confirms its values are heights in metres. For feet or other mappings use Configure active layer. Local Arc/Info ASCII grids up to 8 MiB and two million cells are supported alongside GeoTIFF terrain. Large ASCII grids should be converted to tiled GeoTIFFs for windowed access.
+
+### Configure the 3D display (0.2.0)
+
+Open **Plugins → Current View to ParaView → Configure 3D view**. The dialog lists canvas layers in project tree order and uses their group paths. Edit a group name to move a layer in the exported scene. Pick a colour, opacity, display size and optional categorical colour field. The group button copies the chosen layer’s colour and opacity to its group. Use **Apply geological survey preset** for a starting arrangement of surfaces, boreholes and seismic profiles. Review it and click OK. Save the QGIS project to keep these settings.
+
+For a line, a positive tube radius creates a display surface in scene metres. Zero uses the original line. In the browser, expand **QGIS 3D view** to switch groups or individual layers. Change vertical scale or use **1×** to restore true proportions. Shift-click near a displayed point to inspect its source ID, original elevation in metres and exported attributes. Choose those fields under **Configure active layer**. Picking finds the nearest projected point in a 12-pixel radius and can reach a point behind a surface. The browser carries its controls inside the offline HTML.
+
+Desktop ParaView opens the styled layers as separate sources; the geometry-only scene.vtm also carries the group hierarchy. Point picking and the group control panel described above are browser features.
+
+## SGeMS and GroundSurf in one scene
+
+In SGeMS Workbench 0.4.4 or later, use **Add to QGIS map**. Kriging estimates and SGSIM/SISIM realizations use geometry Z and include numeric properties automatically. For other sample or Cartesian-grid point layers, select the layer and choose **Current View to ParaView → Use active layer as SGeMS points**. Review the numeric fields and vertical units, then click OK. Model nodes appear as points. Numeric properties are available as ParaView point arrays with the prefix `field.`.
+
+In GroundSurf, add the site boundary or mapped evidence to QGIS. Keep those layers visible alongside the model, zoom to the area of interest, and choose **Send current view to ParaView** or **Open current view in browser (Glance)**. Evidence retains its source, date, label, scale and spatial relationship where supplied. Boundaries retain their report ID and site origin. Two-dimensional evidence is displayed at the reference plane unless you configure an elevation source. Its display height is not a measured groundwater elevation.
+
+To combine sources geographically, assign the correct CRS to the model before export. For a purely local model, use a separate no-CRS project and confirm that horizontal units are metres. Existing view clipping, feature budgets, layer visibility and explicit attribute choices apply.

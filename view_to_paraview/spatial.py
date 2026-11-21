@@ -1,7 +1,7 @@
 import numpy as np
 from osgeo import osr
 from qgis.core import (QgsCoordinateReferenceSystem as CRS, QgsCoordinateTransform,
-                       QgsGeometry, QgsRectangle, QgsUnitTypes)
+                       QgsGeometry, QgsRectangle, Qgis)
 
 
 def transform_xy(src, dst, x, y):
@@ -35,16 +35,18 @@ class Frame:
         self.footprint = QgsGeometry.fromPolygonXY([self.corners + self.corners[:1]])
         self.scene = self.crs
         center = self.footprint.centroid().asPoint()
-        self.local_grid = self.crs.isGeographic() and abs(center.y()) > 90
+        self.local_grid = not self.crs.isValid() or (self.crs.isGeographic() and abs(center.y()) > 90)
         if self.local_grid:
             if not allow_local_metres:
+                if not self.crs.isValid():
+                    raise LocalGridRequired('The canvas has no CRS. Only layers in the same local frame can be included.')
                 raise LocalGridRequired(
                     f'The canvas uses {self.crs.description()}, but its centre is '
                     f'X {center.x():,.2f}, Y {center.y():,.2f}. This Y is outside the latitude range.'
                 )
             self.origin = center
             return
-        if self.crs.mapUnits() != QgsUnitTypes.DistanceMeters or self.crs.isGeographic() or self.crs.authid()=='EPSG:3857':
+        if self.crs.mapUnits() != Qgis.DistanceUnit.Meters or self.crs.isGeographic() or self.crs.authid()=='EPSG:3857':
             geo = QgsCoordinateTransform(self.crs, CRS('EPSG:4326'), self.context).transform(center)
             self.scene = CRS()
             if not self.scene.createFromProj(f'+proj=aeqd +lat_0={geo.y():.12f} +lon_0={(geo.x()+180)%360-180:.12f} +datum=WGS84 +units=m +type=crs'):

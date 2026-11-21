@@ -35,8 +35,8 @@ def capture(canvas, options, allow_local_metres=False):
             continue
         name = layer.name()
         try:
-            if not layer.isValid() or not layer.crs().isValid():
-                raise ValueError('Layer or CRS is invalid.')
+            if not layer.isValid() or (not layer.crs().isValid() and not frame.local_grid):
+                raise ValueError('Layer or CRS is invalid. Assign the source CRS, or use a separate local-metre project for unreferenced data.')
             if frame.local_grid and layer.crs() != frame.crs:
                 raise ValueError('Local-grid export requires the same coordinate label as the canvas.')
             entry = dict(name=name,id=layer.id(),vertical_crs=layer.verticalCrs().description()
@@ -92,7 +92,7 @@ class Cancelled(Exception):
 
 class ExportTask(QgsTask):
     def __init__(self,snapshot,folder,callback,browser_view=False):
-        super().__init__('Send current view to ParaView',QgsTask.CanCancel)
+        super().__init__('Send current view to ParaView',QgsTask.Flag.CanCancel)
         self.frame,self.entries,self.audit = snapshot
         self.folder,self.callback = Path(folder),callback
         self.result_path,self.error = None,''
@@ -139,9 +139,13 @@ class ExportTask(QgsTask):
                 self.setProgress(100*(i+1)/max(1,len(entries)))
             if not blocks:
                 raise ValueError('No exportable layers. '+ ' '.join(x['layer']+': '+x['reason'] for x in self.audit['skipped']))
-            scene(stage,blocks)
+            styles = {m['file']:dict(m['settings'].get('display', {})) for m in self.audit['layers']}
+            for m in self.audit['layers']:
+                styles[m['file']].update({k:m[k] for k in ('tube_file','points_file') if k in m})
+            blocks.sort(key=lambda b:styles[b[1]].get('order', 0))
+            scene(stage,blocks,styles)
             if self.browser_view:
-                self.browser_error = write_browser_view(stage,blocks,self.check)
+                self.browser_error = write_browser_view(stage,blocks,self.check,styles,self.audit.get("vertical_scale", 1))
             (stage/'snapshot.json').write_text(json.dumps(self.audit,indent=2),encoding='utf-8')
             self.check()
             final=self.folder/(time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8])
