@@ -86,6 +86,46 @@ class ThreePreviewTests(unittest.TestCase):
             self.assertEqual(scene['layers'][0]['name'],'</script><img src=evil>')
             self.assertEqual(scene['layers'][0]['color'],'#72ac86')
 
+    def test_rejects_doctype_internal_entities_and_external_references(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = fixture(root)
+            good = path.read_text()
+            payloads = [
+                '<!DOCTYPE VTKFile [<!ENTITY bomb "BOMB">]>' + good,
+                '<?xml version="1.0"?><!DOCTYPE VTKFile [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
+                + good.split('?>', 1)[-1],
+                '<!DOCTYPE VTKFile [<!ENTITY repeat "a" >]>' + good,
+            ]
+            for payload in payloads:
+                with self.subTest(payload=payload[:95]):
+                    path.write_text(payload)
+                    with self.assertRaisesRegex(ValueError, 'DTD|entity'):
+                        read_polydata(path)
+
+    def test_rejects_multiple_pieces_and_deep_xml(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = fixture(root)
+            valid = path.read_text()
+            piece = valid.split('<Piece', 1)[1].split('</Piece>', 1)[0]
+            path.write_text(valid.replace('</PolyData>', '<Piece' + piece + '</Piece></PolyData>'))
+            with self.assertRaisesRegex(ValueError, 'Multiple VTP pieces'):
+                read_polydata(path)
+            path.write_text('<VTKFile type="PolyData">' + '<Extra>' * 21
+                            + '</Extra>' * 21 + '</VTKFile>')
+            with self.assertRaisesRegex(ValueError, 'parser limits'):
+                read_polydata(path)
+
+    def test_invalid_xml_does_not_abort_entire_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = fixture(root)
+            path.write_text('<!DOCTYPE VTKFile [<!ENTITY bomb "x">]><VTKFile type="PolyData"/>')
+            result = write_three_preview(root, [('untrusted XML', path.name)], lambda: None)
+            self.assertIn('No small VTP', result)
+            self.assertFalse((root / 'quick-preview.html').exists())
+
     def test_missing_layers_do_not_create_preview(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

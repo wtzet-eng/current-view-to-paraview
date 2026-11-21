@@ -2,7 +2,7 @@
 name=Current View to ParaView by GroundSurf
 description=Preview visible QGIS terrain and vectors in Three.js, explore offline with Glance, or open the full scene in ParaView.
 about=Export visible vectors and elevation layers clipped to the map view. Choose quick Three.js preview (loads its JavaScript module online), the bundled offline Kitware Glance viewer, or desktop ParaView. No survey data are uploaded by the plugin. Requires QGIS GDAL and NumPy Python bindings; polygon triangulation requires GEOS 3.11+.
-version=0.2.4
+version=0.2.5
 qgisMinimumVersion=3.34
 qgisMaximumVersion=3.99
 author=GroundSurf
@@ -15,7 +15,8 @@ repository=https://github.com/wtzet-eng/current-view-to-paraview
 tracker=https://github.com/wtzet-eng/current-view-to-paraview/issues
 icon=icon.svg
 license=GPL-2.0-or-later
-changelog=0.2.4 - GroundSurf branding and optional lightweight Three.js quick preview (online library, local geometry).
+changelog=0.2.5 - Harden Three.js VTP XML parsing; explicitly reject DTDs and entities, no new dependencies.
+    0.2.4 - GroundSurf branding and optional lightweight Three.js quick preview (online library, local geometry).
     0.2.3 - Export SGeMS point properties and GroundSurf evidence and site layers together.
     0.2.2 - Write VTK XML using a streaming XML writer.
     0.2.1 - Update Qt dialog and enum usage for compatibility.

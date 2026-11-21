@@ -13,6 +13,9 @@ Frame a site in QGIS, then choose the optional **Quick 3D preview (Three.js)**, 
 
 ### Three.js quick preview (optional)
 
+**Security update 0.2.5:** VTP XML is parsed using a bounded Python Expat reader that rejects DTDs, internal and external entity declarations, and oversized files. No XML parser package needs installing.
+
+
 Choose **Quick 3D preview (Three.js)** from the plugin menu. It exports a new, coarser terrain snapshot and opens `quick-preview.html` in your regular browser. Use the mouse to rotate, scroll to zoom, toggle individual layers and reset the view. The style is dark (#212121) with green accents.
 
 This preview is intentionally simple: it shows local geometry only (points, lines and triangulated surfaces), not the full attribute table, source labels, advanced ParaView tools or guaranteed precision. Large VTP layers are skipped under explicit size and vertex budgets; the preview lists those omissions. The full `scene.vtm` export remains available and `snapshot.json` records the normal full-export provenance.
