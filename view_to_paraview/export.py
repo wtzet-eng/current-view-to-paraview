@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from qgis.core import QgsMapSettings, QgsRasterLayer, QgsTask, QgsVectorLayer
 from .browser import write_browser_view
+from .three_preview import write_three_preview
 from .spatial import Frame
 from .terrain import Terrain, CELL_LIMIT
 from .vector import capture_vector, vector_file
@@ -91,13 +92,15 @@ class Cancelled(Exception):
 
 
 class ExportTask(QgsTask):
-    def __init__(self,snapshot,folder,callback,browser_view=False):
+    def __init__(self,snapshot,folder,callback,browser_view=False,three_view=False):
         super().__init__('Send current view to ParaView',QgsTask.Flag.CanCancel)
         self.frame,self.entries,self.audit = snapshot
         self.folder,self.callback = Path(folder),callback
         self.result_path,self.error = None,''
         self.browser_view = browser_view
         self.browser_error = ''
+        self.three_view = three_view
+        self.three_error = ''
         self.setProgress(0)
 
     def check(self):
@@ -146,6 +149,8 @@ class ExportTask(QgsTask):
             scene(stage,blocks,styles)
             if self.browser_view:
                 self.browser_error = write_browser_view(stage,blocks,self.check,styles,self.audit.get("vertical_scale", 1))
+            if self.three_view:
+                self.three_error = write_three_preview(stage,blocks,self.check,styles,self.audit.get("vertical_scale", 1))
             (stage/'snapshot.json').write_text(json.dumps(self.audit,indent=2),encoding='utf-8')
             self.check()
             final=self.folder/(time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8])

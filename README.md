@@ -1,16 +1,16 @@
-# Current View to ParaView
+# Current View to ParaView by GroundSurf
 
 **Explore your QGIS map in 3D — using desktop ParaView or a browser, even offline.**
 
-Current View to ParaView is a free, open-source QGIS plugin for people working with terrain, boreholes, geological boundaries and other spatial survey data. It exports the **currently visible map area** as a local 3D snapshot. You decide when to export; ordinary panning and zooming do not trigger new work.
+Current View to ParaView by GroundSurf is a free, open-source QGIS plugin for people working with terrain, boreholes, geological boundaries and other spatial survey data. It exports the **currently visible map area** as a local 3D snapshot. You decide when to export; ordinary panning and zooming do not trigger new work.
 
-**Current release:** 0.1.4 · **Status:** experimental · **QGIS:** 3.34–3.x · **Licence:** GPL-2.0-or-later
+**Development branch:** 0.2.4 (experimental, not yet published) · **QGIS:** 3.34–3.x · **Licence:** GPL-2.0-or-later. The QGIS catalogue currently lists 0.2.2 as the latest stable version.
 
 ### What it does
 
 - **Terrain in 3D:** turn supported local elevation rasters into a surface.
 - **Survey layers together:** include supported points, lines and polygons, including borehole paths and logged intervals.
-- **Two ways to explore:** open the scene in installed desktop ParaView or the bundled offline Kitware Glance viewer.
+- **Three ways to explore:** inspect a lightweight preview using Three.js, open the scene in desktop ParaView, or use bundled offline Kitware Glance.
 - **Repeatable snapshots:** export a new view without changing the original QGIS layers or project data.
 - **Useful metadata:** inspect `snapshot.json` to see what was exported, what was skipped and which coordinates and heights were used.
 
@@ -19,26 +19,34 @@ Current View to ParaView is a free, open-source QGIS plugin for people working w
 1. Install the plugin ZIP in QGIS using **Plugins → Manage and Install Plugins → Install from ZIP**.
 2. Open a QGIS project containing supported local terrain or spatially indexed vector layers.
 3. Choose **Configure active layer** for any layer that needs an elevation or borehole-depth mapping.
-4. Frame the area you want and click **Send current view to ParaView**. Without desktop ParaView, choose **Open current view in browser (Glance)**.
+4. Frame the site. Choose **Quick 3D preview (Three.js)** for a lightweight overview, **Open current view in browser (Glance)** for an offline viewer, or **Send current view to ParaView** for the full desktop workflow.
 
 The detailed setup steps, supported formats and limitations are below.
 
 ## Privacy and sharing
 
-**Exported survey data stays on your computer.** The plugin creates local scene files; it does not require a GroundSurf account or upload the generated survey data to an online service. Its bundled Glance browser view works offline.
+**Exported survey data stays on your computer.** The plugin creates local scene files; it does not require a GroundSurf account or upload the generated survey data to an online service. The optional Three.js quick preview downloads a pinned JavaScript module from jsDelivr when opened (internet required); it embeds geometry locally and its page blocks direct network data requests. Third-party scripts may present additional privacy risks. For confidential work or offline use, choose bundled Kitware Glance instead.
 
-**Be careful when sharing snapshots.** The exported `scene.vtm`, `.vtp`, `view.html` and `snapshot.json` files may contain real coordinates, elevations, labels and other layer attributes. Review them before sharing or uploading them anywhere, including GitHub. The plugin does not make confidential survey information anonymous.
+**Be careful when sharing snapshots.** The exported `scene.vtm`, `.vtp`, `view.html`, `quick-preview.html` and `snapshot.json` files may contain real coordinates, elevations, labels and other layer attributes. Review them before sharing or uploading them anywhere, including GitHub. The plugin does not make confidential survey information anonymous.
 
 The software is experimental and is intended for visual exploration, **not as a substitute for checked engineering or geological interpretation**. See the scope and limits below.
 
 ## Install and try it
 
 1. Install QGIS 3.34 or later in the 3.x series and a WebGL-capable browser. Desktop ParaView with Python support is optional. The plugin uses the NumPy and GDAL Python bindings supplied with common QGIS distributions. Polygon triangulation needs GEOS 3.11 or newer.
-2. In QGIS open **Plugins → Manage and Install Plugins → Install from ZIP**. Select the downloaded ZIP without extracting it. Enable **Current View to ParaView**.
-3. Add a local elevation GeoTIFF. Select it in the Layers panel and choose **Plugins → Current View to ParaView → Configure active layer**. Tick **Use as elevation terrain**, choose the elevation band and units, and press **OK**. A raster already marked as elevation in QGIS is recognised automatically. Review the settings when using multiband data. Terrain comes from the elevation samples, with the raster scale and offset applied.
+2. In QGIS open **Plugins → Manage and Install Plugins → Install from ZIP**. Select the downloaded ZIP without extracting it. Enable **Current View to ParaView by GroundSurf**.
+3. Add a local elevation GeoTIFF. Select it in the Layers panel and choose **Plugins → Current View to ParaView by GroundSurf → Configure active layer**. Tick **Use as elevation terrain**, choose the elevation band and units, and press **OK**. A raster already marked as elevation in QGIS is recognised automatically. Review the settings when using multiband data. Terrain comes from the elevation samples, with the raster scale and offset applied.
 4. Add a spatially indexed local GeoPackage or shapefile of points, lines or polygons. A QGIS memory layer with a provider spatial index also works. Select each layer and configure its height and any attributes to include. By default, a feature keeps its geometry Z in metres. Ordinary 2D geometry sits on a flat 0 m reference plane. Select **Sample displayed terrain** to drape the vertices. Save the QGIS project to retain the mappings.
-5. For the browser, choose **Plugins → Current View to ParaView → Open current view in browser (Glance)**. All successfully exported layers open together. Use the eye beside each layer to toggle it and drag the 3D view to rotate. The toolbar chooses the browser automatically when it cannot find a desktop ParaView executable.
+5. For the browser, choose **Plugins → Current View to ParaView by GroundSurf → Open current view in browser (Glance)**. All successfully exported layers open together. Use the eye beside each layer to toggle it and drag the 3D view to rotate. The toolbar chooses the browser automatically when it cannot find a desktop ParaView executable.
 6. Pan to a new site and click again for a fresh snapshot. Progress and cancellation are available in the QGIS task manager. Use **Choose export folder** to change the default **Documents/QGIS ParaView**.
+
+### Three.js quick preview (optional)
+
+Choose **Quick 3D preview (Three.js)** from the plugin menu. It exports a new, coarser terrain snapshot and opens `quick-preview.html` in your regular browser. Use the mouse to rotate, scroll to zoom, toggle individual layers and reset the view. The style is dark (#212121) with green accents.
+
+This preview is intentionally simple: it shows local geometry only (points, lines and triangulated surfaces), not the full attribute table, source labels, advanced ParaView tools or guaranteed precision. Large VTP layers are skipped under explicit size and vertex budgets; the preview lists those omissions. The full `scene.vtm` export remains available and `snapshot.json` records the normal full-export provenance.
+
+**Internet and privacy:** Three.js 0.187.0 (MIT licence) is loaded from jsDelivr only when you open this option; the resulting HTML embeds scene geometry locally and disables `connect-src` requests. No user-created geometries are uploaded by the plugin, but loading third-party code is still a trust decision. Use **Open current view in browser (Glance)** for offline or sensitive work. A browser with WebGL is required. We intentionally do not embed a WebEngine window in QGIS 3.34, where support can vary by platform.
 
 The browser snapshot is a self-contained **view.html** with the layer data and Kitware Glance viewer embedded. Double-click it later, including offline. It requires a WebGL-capable browser and permits no network connections from the page. The viewer and licence notices are included in the ZIP. The browser preview accepts up to 96 MiB of VTP input per snapshot. A larger export retains its VTK files and gives a message to reduce the extent or omit layers.
 

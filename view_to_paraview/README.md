@@ -1,15 +1,23 @@
-# Current View to ParaView · 0.1.4
+# Current View to ParaView by GroundSurf
 
-Frame a site in QGIS and click **Send current view to ParaView**. Each click creates a local 3D snapshot. Panning and zooming are free of export work.
+Frame a site in QGIS, then choose the optional **Quick 3D preview (Three.js)**, offline **Glance**, or **Send current view to ParaView**. Each click creates a local 3D snapshot. Panning and zooming are free of export work.
 
 ## Install and try it
 
 1. Install QGIS 3.34 or later in the 3.x series and a WebGL-capable browser. Desktop ParaView with Python support is optional. The plugin uses the NumPy and GDAL Python bindings supplied with common QGIS distributions. Polygon triangulation needs GEOS 3.11 or newer.
-2. In QGIS open **Plugins → Manage and Install Plugins → Install from ZIP**. Select the downloaded ZIP without extracting it. Enable **Current View to ParaView**.
-3. Add a local elevation GeoTIFF. Select it in the Layers panel and choose **Plugins → Current View to ParaView → Configure active layer**. Tick **Use as elevation terrain**, choose the elevation band and units, and press **OK**. A raster already marked as elevation in QGIS is recognised automatically. Review the settings when using multiband data. Terrain comes from the elevation samples, with the raster scale and offset applied.
+2. In QGIS open **Plugins → Manage and Install Plugins → Install from ZIP**. Select the downloaded ZIP without extracting it. Enable **Current View to ParaView by GroundSurf**.
+3. Add a local elevation GeoTIFF. Select it in the Layers panel and choose **Plugins → Current View to ParaView by GroundSurf → Configure active layer**. Tick **Use as elevation terrain**, choose the elevation band and units, and press **OK**. A raster already marked as elevation in QGIS is recognised automatically. Review the settings when using multiband data. Terrain comes from the elevation samples, with the raster scale and offset applied.
 4. Add a spatially indexed local GeoPackage or shapefile of points, lines or polygons. A QGIS memory layer with a provider spatial index also works. Select each layer and configure its height and any attributes to include. By default, a feature keeps its geometry Z in metres. Ordinary 2D geometry sits on a flat 0 m reference plane. Select **Sample displayed terrain** to drape the vertices. Save the QGIS project to retain the mappings.
-5. For the browser, choose **Plugins → Current View to ParaView → Open current view in browser (Glance)**. All successfully exported layers open together. Use the eye beside each layer to toggle it and drag the 3D view to rotate. The toolbar chooses the browser automatically when it cannot find a desktop ParaView executable.
+5. For the browser, choose **Plugins → Current View to ParaView by GroundSurf → Open current view in browser (Glance)**. All successfully exported layers open together. Use the eye beside each layer to toggle it and drag the 3D view to rotate. The toolbar chooses the browser automatically when it cannot find a desktop ParaView executable.
 6. Pan to a new site and click again for a fresh snapshot. Progress and cancellation are available in the QGIS task manager. Use **Choose export folder** to change the default **Documents/QGIS ParaView**.
+
+### Three.js quick preview (optional)
+
+Choose **Quick 3D preview (Three.js)** from the plugin menu. It exports a new, coarser terrain snapshot and opens `quick-preview.html` in your regular browser. Use the mouse to rotate, scroll to zoom, toggle individual layers and reset the view. The style is dark (#212121) with green accents.
+
+This preview is intentionally simple: it shows local geometry only (points, lines and triangulated surfaces), not the full attribute table, source labels, advanced ParaView tools or guaranteed precision. Large VTP layers are skipped under explicit size and vertex budgets; the preview lists those omissions. The full `scene.vtm` export remains available and `snapshot.json` records the normal full-export provenance.
+
+**Internet and privacy:** Three.js 0.187.0 (MIT licence) is loaded from jsDelivr only when you open this option; the resulting HTML embeds scene geometry locally and disables `connect-src` requests. No user-created geometries are uploaded by the plugin, but loading third-party code is still a trust decision. Use **Open current view in browser (Glance)** for offline or sensitive work. A browser with WebGL is required. We intentionally do not embed a WebEngine window in QGIS 3.34, where support can vary by platform.
 
 The browser snapshot is a self-contained **view.html** with the layer data and Kitware Glance viewer embedded. Double-click it later, including offline. It requires a WebGL-capable browser and permits no network connections from the page. The viewer and licence notices are included in the ZIP. The browser preview accepts up to 96 MiB of VTP input per snapshot. A larger export retains its VTK files and gives a message to reduce the extent or omit layers.
 
@@ -50,7 +58,7 @@ An unconfigured single-band floating-point raster can be included as a surface w
 
 ### Configure the 3D display (0.2.0)
 
-Open **Plugins → Current View to ParaView → Configure 3D view**. The dialog lists canvas layers in project tree order and uses their group paths. Edit a group name to move a layer in the exported scene. Pick a colour, opacity, display size and optional categorical colour field. The group button copies the chosen layer’s colour and opacity to its group. Use **Apply geological survey preset** for a starting arrangement of surfaces, boreholes and seismic profiles. Review it and click OK. Save the QGIS project to keep these settings.
+Open **Plugins → Current View to ParaView by GroundSurf → Configure 3D view**. The dialog lists canvas layers in project tree order and uses their group paths. Edit a group name to move a layer in the exported scene. Pick a colour, opacity, display size and optional categorical colour field. The group button copies the chosen layer’s colour and opacity to its group. Use **Apply geological survey preset** for a starting arrangement of surfaces, boreholes and seismic profiles. Review it and click OK. Save the QGIS project to keep these settings.
 
 For a line, a positive tube radius creates a display surface in scene metres. Zero uses the original line. In the browser, expand **QGIS 3D view** to switch groups or individual layers. Change vertical scale or use **1×** to restore true proportions. Shift-click near a displayed point to inspect its source ID, original elevation in metres and exported attributes. Choose those fields under **Configure active layer**. Picking finds the nearest projected point in a 12-pixel radius and can reach a point behind a surface. The browser carries its controls inside the offline HTML.
 

@@ -18,6 +18,7 @@ RUNTIME = (
     "display.py",
     "geometry_display.py",
     "scene_controls.js",
+    "three_preview.py",
     "export.py",
     "icon.svg",
     "metadata.txt",
