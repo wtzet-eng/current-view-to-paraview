@@ -4,7 +4,7 @@
 
 Current View to ParaView by GroundSurf is a free, open-source QGIS plugin for people working with terrain, boreholes, geological boundaries and other spatial survey data. It exports the **currently visible map area** as a local 3D snapshot. You decide when to export; ordinary panning and zooming do not trigger new work.
 
-**Development branch:** 0.2.4 (experimental, not yet published) · **QGIS:** 3.34–3.x · **Licence:** GPL-2.0-or-later. The QGIS catalogue currently lists 0.2.2 as the latest stable version.
+**Development branch:** 0.2.5 (experimental, not yet published) · **QGIS:** 3.34–3.x · **Licence:** GPL-2.0-or-later. The QGIS catalogue currently lists 0.2.2 as the latest stable version.
 
 ### What it does
 
@@ -41,6 +41,9 @@ The software is experimental and is intended for visual exploration, **not as a 
 6. Pan to a new site and click again for a fresh snapshot. Progress and cancellation are available in the QGIS task manager. Use **Choose export folder** to change the default **Documents/QGIS ParaView**.
 
 ### Three.js quick preview (optional)
+
+**Security update 0.2.5:** VTP XML is parsed using a bounded Python Expat reader that rejects DTDs, internal and external entity declarations, and oversized files. No XML parser package needs installing.
+
 
 Choose **Quick 3D preview (Three.js)** from the plugin menu. It exports a new, coarser terrain snapshot and opens `quick-preview.html` in your regular browser. Use the mouse to rotate, scroll to zoom, toggle individual layers and reset the view. The style is dark (#212121) with green accents.
 

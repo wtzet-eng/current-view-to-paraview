@@ -11,7 +11,7 @@ import json
 import math
 import re
 import struct
-import xml.etree.ElementTree as ET
+from xml.parsers import expat
 
 MAX_VTP_BYTES = 12 * 1024 * 1024
 MAX_POINTS_PER_LAYER = 100_000
@@ -105,19 +105,105 @@ reset();
 """
 
 
-def _typed_array(piece, section, name, kind):
-    target = piece.find('./' + section + '/DataArray[@Name="' + name + '"]')
-    if target is None and section == 'Points' and name == 'Points':
-        target = piece.find('./Points/DataArray')
-    if target is None or target.get('format') != 'binary':
+def _parse_vtp_geometry(path):
+    """Read only the expected VTP geometry using a deliberately restricted parser.
+
+    Expat comes with Python, including the QGIS Python environment. DTDs,
+    entity declarations and external references are rejected rather than
+    expanded or fetched. The input, nesting, element count and captured text
+    are bounded independently. No additional plugin dependency is required.
+    """
+    parser = expat.ParserCreate()
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    stack, arrays = [], {}
+    piece_attrs = None
+    capture = None
+    elements = 0
+    text_length = 0
+
+    def forbidden(*_args):
+        raise ValueError('VTP XML DTDs and entity declarations are forbidden')
+
+    parser.StartDoctypeDeclHandler = forbidden
+    parser.EntityDeclHandler = forbidden
+    parser.ExternalEntityRefHandler = forbidden
+    parser.UnparsedEntityDeclHandler = forbidden
+    parser.NotationDeclHandler = forbidden
+
+    def on_start(name, attrs):
+        nonlocal piece_attrs, capture, elements
+        elements += 1
+        if elements > 3000 or len(stack) >= 20:
+            raise ValueError('VTP XML structure exceeds safe parser limits')
+        if len(attrs) > 32 or any(len(k) > 128 or len(v) > 1024 for k, v in attrs.items()):
+            raise ValueError('VTP XML attribute budget exceeded')
+        stack.append(name)
+        if len(stack) == 1:
+            if name != 'VTKFile' or attrs.get('type') != 'PolyData':
+                raise ValueError('Not VTK XML PolyData')
+        elif stack == ['VTKFile', 'PolyData', 'Piece']:
+            if piece_attrs is not None:
+                raise ValueError('Multiple VTP pieces are not supported')
+            piece_attrs = attrs.copy()
+        elif (len(stack) == 5 and stack[:3] == ['VTKFile', 'PolyData', 'Piece']
+              and stack[3] in ('Points', 'Polys', 'Lines', 'Verts')
+              and name == 'DataArray'):
+            section = stack[3]
+            column = attrs.get('Name', 'Points' if section == 'Points' else '')
+            if column in (('Points',) if section == 'Points' else ('connectivity', 'offsets')):
+                key = (section, column)
+                if key in arrays:
+                    raise ValueError('Duplicate VTP geometry array')
+                capture = dict(key=key, attrs=attrs.copy(), chunks=[])
+
+    def on_text(text):
+        nonlocal text_length
+        if capture is not None:
+            text_length += len(text)
+            if text_length > MAX_VTP_BYTES:
+                raise ValueError('VTP XML geometry text exceeds safe budget')
+            capture['chunks'].append(text)
+
+    def on_end(name):
+        nonlocal capture
+        if not stack or name != stack[-1]:
+            raise ValueError('Malformed VTP element nesting')
+        if capture is not None and len(stack) == 5 and name == 'DataArray':
+            arrays[capture['key']] = (capture['attrs'], ''.join(capture['chunks']))
+            capture = None
+        stack.pop()
+
+    parser.StartElementHandler = on_start
+    parser.CharacterDataHandler = on_text
+    parser.EndElementHandler = on_end
+    parsed_bytes = 0
+    with path.open('rb') as source:
+        while True:
+            chunk = source.read(65536)
+            if not chunk:
+                break
+            parsed_bytes += len(chunk)
+            if parsed_bytes > MAX_VTP_BYTES:
+                raise ValueError('VTP XML input exceeds safe budget')
+            parser.Parse(chunk, False)
+    parser.Parse(b'', True)
+    if stack or piece_attrs is None:
+        raise ValueError('Missing VTP PolyData Piece')
+    return piece_attrs, arrays
+
+
+def _typed_array(arrays, section, name, kind):
+    target = arrays.get((section, name))
+    if target is None or target[0].get('format') != 'binary':
         raise ValueError('Missing or non-binary VTP array: ' + section + '/' + name)
-    raw = b64decode((target.text or '').strip(), validate=True)
+    attrs, payload = target
+    raw = b64decode(payload.strip(), validate=True)
     if len(raw) < 8:
         raise ValueError('Truncated VTP array')
     nbytes = struct.unpack_from('<Q', raw)[0]
     data = raw[8:]
     expected_type = {'d': 'Float64', 'i': 'Int32'}[kind]
-    if target.get('type') != expected_type or len(data) != nbytes or nbytes % struct.calcsize(kind):
+    if attrs.get('type') != expected_type or len(data) != nbytes or nbytes % struct.calcsize(kind):
         raise ValueError('Invalid VTP type or byte count')
     return [v[0] for v in struct.iter_unpack('<' + kind, data)]
 
@@ -127,14 +213,11 @@ def read_polydata(path, scale=1.0):
     path = Path(path)
     if not path.is_file() or path.is_symlink() or path.stat().st_size > MAX_VTP_BYTES:
         raise ValueError('Layer is not a local lightweight VTP file')
-    doc = ET.parse(path)
-    piece = doc.find('./PolyData/Piece')
-    if piece is None:
-        raise ValueError('Not VTK XML PolyData')
+    piece, arrays = _parse_vtp_geometry(path)
     count = int(piece.get('NumberOfPoints', '0'))
     if count <= 0 or count > MAX_POINTS_PER_LAYER:
         raise ValueError('Point budget exceeded')
-    values = _typed_array(piece, 'Points', 'Points', 'd')
+    values = _typed_array(arrays, 'Points', 'Points', 'd')
     if len(values) != count * 3 or not all(math.isfinite(x) and abs(x) < 1e9 for x in values):
         raise ValueError('Invalid VTP point coordinates')
     if not math.isfinite(scale) or not 0 < scale <= 1000:
@@ -143,8 +226,8 @@ def read_polydata(path, scale=1.0):
                    if int(piece.get('NumberOf' + kind, '0')) > 0), None)
     if not family:
         raise ValueError('No supported polydata cells')
-    connectivity = _typed_array(piece, family, 'connectivity', 'i')
-    offsets = _typed_array(piece, family, 'offsets', 'i')
+    connectivity = _typed_array(arrays, family, 'connectivity', 'i')
+    offsets = _typed_array(arrays, family, 'offsets', 'i')
     indices = []
     start = 0
     for end in offsets:
@@ -193,7 +276,7 @@ def write_three_preview(folder, blocks, check, styles=None, scale=1.0):
                 if not isinstance(geometry['color'], str) or not re.fullmatch(r'#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?', geometry['color']):
                     geometry['color'] = '#80b78c'
                 layers.append(geometry)
-            except (ValueError, OSError, ET.ParseError):
+            except (ValueError, OSError, expat.ExpatError):
                 skipped.append(name)
         if not layers:
             return 'No small VTP layers suitable for the Three.js preview. Use offline Glance or desktop ParaView.'
